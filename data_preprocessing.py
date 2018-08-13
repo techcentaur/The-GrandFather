@@ -1,9 +1,11 @@
 import re, os
-import glob, json
+import glob, json, nltk
 import click
 import logging
 import argparse
 
+from string import punctuation
+from nltk.corpus import stopwords
 logger = logging.getLogger()
 
 class Process:
@@ -30,7 +32,6 @@ class Process:
             logger.debug('[!] Something is wrong in reading t-t-the file Morty! Check here, in-and-out, 20 minutes adventure!')
 
     def get_data(self):
-
         files = glob.glob('./dataset/*/*.txt')
 
         logger.info('[*] Read scripts and collect d-d-dialogues here *burps* Morty!')
@@ -60,11 +61,52 @@ class Process:
 
             dial_ = " ".join(dial_)
             dial_ = dial_.replace('\n', '')
-            self.get_json(name+'.json', {name: dial_})
+
+            clean_dial = TextClean().clean(dial_)
+
+            self.get_json(name+'.json', {name: clean_dial})
 
         logger.info('[*]')
         logger.info('[*] Good *burps* job Morty!')
 
+
+
+class TextClean(object):
+    def __init__(self):
+        pass
+
+    def apostrophe_normalisation(self, raw):
+            for (i, j) in [(r"n\'t", " not"), (r"\'re", " are"), (r"\'s", " is"), (r"\'d", " would"),
+                            (r"\'ll", " will"), (r"\'t", " not"), (r"\'ve", " have"), (r"\'m", " am"),
+                            (r"\'Cause", "because")]:
+                raw = re.sub(i, j, raw)
+
+            return raw
+
+    def stopwords_remove(self, raw):                 
+            tokens = nltk.word_tokenize(raw)
+            sw = set(stopwords.words('english'))
+
+            clean_tokens = [x for x in tokens if not x in sw]
+            text = self.punctuation_remove(clean_tokens)
+
+            return text
+
+    def punctuation_remove(self, tokens):
+            punc_list = list(punctuation)
+
+            for i in tokens:
+                if i in punc_list:
+                    tokens.remove(i)
+            
+            text = " ".join(tokens)
+            return text
+
+    def clean(self, text):
+        raw = self.apostrophe_normalisation(text)
+        raw = self.stopwords_remove(raw)
+
+        return raw
 
 
 if __name__=="__main__":
